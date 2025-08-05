@@ -1,0 +1,67 @@
+# QuantumAI
+#This project compares a Variational Quantum Classifier (VQC) with a classical Support Vector Machine (SVM) on a synthetic binary classification dataset. Features are scaled to [0, π] for quantum encoding, enabling performance evaluation between quantum and classical approaches.
+!pip uninstall -y scikit-learn numpy pandas dill
+!pip install -q --no-cache-dir --force-reinstall --no-deps \
+qiskit==0.43.0 \
+qiskit-machine-learning==0.6.1 \
+scikit-learn==1.1.3 \
+pandas==2.0.3 \
+numpy==1.23.5 \
+dill==0.3.7 \
+python-dateutil==2.9.0.post0 \
+pytz==2024.2 \
+six==1.16.0
+import sklearn
+print("scikit-learn version:", sklearn.__version__)
+!pip uninstall -y scikit-learn numpy pandas dill
+!pip install -q --no-cache-dir --force-reinstall --no-deps \
+qiskit==0.43.0 \
+qiskit-machine-learning==0.6.1 \
+scikit-learn==1.1.3 \
+pandas==2.0.3 \
+numpy==1.23.5 \
+dill==0.3.7 \
+python-dateutil==2.9.0.post0 \
+pytz==2024.2 \
+six==1.16.0
+import sklearn
+import numpy
+print("scikit-learn version:", sklearn.__version__)
+print("numpy version:", numpy.__version__)
+import numpy as np
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
+from qiskit.circuit.library import ZZFeatureMap, TwoLocal
+from qiskit_machine_learning.algorithms import VQC
+from qiskit.primitives import Sampler
+from qiskit.algorithms.optimizers import COBYLA
+np.random.seed(42)
+X, y = make_classification(n_samples=100, n_features=3, n_classes=2,n_redundant=0, random_state=42)
+scaler = MinMaxScaler(feature_range=(0, np.pi))
+X_scaled = scaler.fit_transform(X)
+feature_dim = X_scaled.shape[1]
+feature_map = ZZFeatureMap(feature_dimension=feature_dim, reps=1)
+ansatz = TwoLocal(num_qubits=feature_dim, reps=2, rotation_blocks='ry', entanglement_blocks='cz')
+optimizer = COBYLA(maxiter=200)
+sampler = Sampler()
+vqc = VQC(
+    feature_map=feature_map,
+    ansatz=ansatz,
+    optimizer=optimizer,
+    loss='cross_entropy',
+    sampler=sampler
+)
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.3, random_state=42)
+vqc.fit(X_train, y_train)
+y_pred = vqc.predict(X_test)
+print("VQC Predictions:", y_pred)
+print("Actual Labels   :", y_test.tolist())
+print("VQC Accuracy    :", accuracy_score(y_test, y_pred))
+svm = SVC(kernel='rbf', random_state=42)
+svm.fit(X_train, y_train)
+svm_pred = svm.predict(X_test)
+print("SVM Accuracy    :", accuracy_score(y_test, svm_pred))
